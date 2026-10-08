@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, please cite it as below."
+title: "goalbench: a reproducible benchmark of choice-style deciders for customer-goal classification in Brazilian Portuguese"
+type: software
+version: 0.1.0
+date-released: 2026-10-08
+license: Apache-2.0
+repository-code: "https://github.com/fuljorge/goal-classification-bench"
+authors:
+  - family-names: "Silva"
+    given-names: "Fulvio Jorge da"
+abstract: >-
+  goalbench measures small "decider" models that answer typed choice questions (Laya,
+  Strands Decider) on customer-goal classification in Brazilian Portuguese, inside a
+  two-stage pipeline: an embedding shortlist of 10 goals followed by the decider, with a
+  calibrated combination fitted by cross-validation. Runs log every phrase, control for
+  option-order (position) bias, and report Wilson intervals and exact McNemar tests.
+keywords:
+  - intent classification
+  - goal classification
+  - Brazilian Portuguese
+  - benchmark
+  - Laya
+  - Strands Decider
+  - embeddings
+  - calibration
