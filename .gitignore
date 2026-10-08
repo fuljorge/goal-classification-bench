@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.env
+# Raw runs are large and machine-specific; publish curated runs explicitly (git add -f).
+results/

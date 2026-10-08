@@ -1,0 +1,3 @@
+# Strands Decider engine. torch is installed first from the PyTorch index (see Dockerfile /
+# README). server.py uses the FastAPI and uvicorn that strands-decider already depends on.
+strands-decider==0.1.0

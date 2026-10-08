@@ -1,0 +1,2 @@
+# Laya server. torch is installed first from the PyTorch index (see Dockerfile / README).
+laya[serve]==0.4.0
