@@ -7,8 +7,8 @@ date-released: 2026-10-08
 license: Apache-2.0
 repository-code: "https://github.com/fuljorge/goal-classification-bench"
 authors:
-  - family-names: "Silva"
-    given-names: "Fulvio Jorge da"
+  - family-names: "Jorge da Silva"
+    given-names: "Fulvio"
 abstract: >-
   goalbench measures small "decider" models that answer typed choice questions (Laya,
   Strands Decider) on customer-goal classification in Brazilian Portuguese, inside a
