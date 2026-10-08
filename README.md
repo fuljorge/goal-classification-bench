@@ -1,5 +1,7 @@
 # goalbench
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23233352.svg)](https://doi.org/10.5281/zenodo.23233352)
+
 A reproducible benchmark for **customer-goal classification in Brazilian Portuguese** with
 small "decider" models that answer typed `choice` questions:
 
@@ -141,7 +143,10 @@ results/<label>__<embedding model>__<order>__seed<seed>/
 
 ## Citation
 
-See [`CITATION.cff`](CITATION.cff).
+Archived on Zenodo. Cite the concept DOI, which always resolves to the latest version:
+[10.5281/zenodo.23233352](https://doi.org/10.5281/zenodo.23233352). Each release also has
+its own DOI; v0.2.1 is [10.5281/zenodo.23233353](https://doi.org/10.5281/zenodo.23233353).
+See [`CITATION.cff`](CITATION.cff) for the full metadata.
 
 ## License
 

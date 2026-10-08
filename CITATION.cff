@@ -5,6 +5,14 @@ type: software
 version: 0.2.1
 date-released: 2026-10-08
 license: Apache-2.0
+doi: 10.5281/zenodo.23233352
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23233352
+    description: "Concept DOI: all versions, resolves to the latest"
+  - type: doi
+    value: 10.5281/zenodo.23233353
+    description: "Version 0.2.1"
 repository-code: "https://github.com/fuljorge/goal-classification-bench"
 authors:
   - family-names: "Jorge da Silva"
