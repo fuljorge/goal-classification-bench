@@ -1,0 +1,23 @@
+{
+  "title": "goalbench: a reproducible benchmark of choice-style deciders for customer-goal classification in Brazilian Portuguese",
+  "upload_type": "software",
+  "description": "<p>goalbench measures small \"decider\" models that answer typed choice questions (Laya, Strands Decider) on customer-goal classification in Brazilian Portuguese, inside a two-stage pipeline: an embedding shortlist of 10 goals followed by the decider, with a calibrated combination fitted by cross-validation. Runs log every phrase, control for option-order (position) bias, and report Wilson intervals and exact McNemar tests. A parallel English translation of the dataset measures the accuracy lost in Brazilian Portuguese and the gain from a language-specific checkpoint.</p><p>The archive includes the code (Apache-2.0), the synthetic datasets (CC BY 4.0) and the raw per-phrase logs of every run reported in docs/results.md and docs/results-language.md.</p>",
+  "creators": [
+    {
+      "name": "Jorge da Silva, Fulvio",
+      "orcid": "0009-0001-0475-9343"
+    }
+  ],
+  "license": "apache-2.0",
+  "keywords": [
+    "intent classification",
+    "goal classification",
+    "Brazilian Portuguese",
+    "multilingual evaluation",
+    "benchmark",
+    "Laya",
+    "Strands Decider",
+    "embeddings",
+    "calibration"
+  ]
+}
