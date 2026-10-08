@@ -1,0 +1,51 @@
+{
+  "goalbench_version": "0.1.0",
+  "created_at": "2026-10-08T06:55:12+00:00",
+  "label": "laya-multilingual",
+  "dataset": {
+    "file": "goals_ptbr.jsonl",
+    "sha256": "dd81ac3e06c60b97704c8805adf21e739e19710f9c6ba2cac6ce1fa417bd4fbd",
+    "goals": 30,
+    "examples": 300,
+    "tests": 150
+  },
+  "embedding": {
+    "model": "text-embedding-qwen3-embedding-4b",
+    "instruction": "Instruct: Identify the customer's goal in this message\nQuery: "
+  },
+  "classifier": {
+    "model_field": "multilingual",
+    "lang": "pt",
+    "instructions": "Qual é o objetivo do cliente nesta mensagem?",
+    "health": {
+      "status": "ok",
+      "loaded": [
+        "multilingual"
+      ],
+      "revisions": {
+        "multilingual": "7b928d828b7b0e022f929d9bd2e44165aa270148"
+      },
+      "device": "cuda",
+      "device_is_preference": false,
+      "checkpoint_devices": {
+        "multilingual": "cuda"
+      },
+      "cpu_fallbacks": {
+        "multilingual": {
+          "count": 0,
+          "last_reason": null
+        }
+      }
+    }
+  },
+  "protocol": {
+    "shortlist": 10,
+    "option_order": "random",
+    "seed": 2,
+    "folds": 5
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

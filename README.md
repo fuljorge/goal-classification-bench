@@ -17,8 +17,26 @@ Every call is logged per phrase, so all conditions and statistics are recomputed
 
 - **Method:** [`docs/method.md`](docs/method.md).
 - **Dataset card:** [`data/README.md`](data/README.md).
-- **Preliminary results:** [`docs/preliminary-results.md`](docs/preliminary-results.md).
-  They were obtained before the position-bias control and must not be cited as final.
+- **Results:** [`docs/results.md`](docs/results.md), with raw logs in
+  [`results/v0.1.0/`](results/v0.1.0/).
+
+## Results at a glance (v0.1.0)
+
+Top-1 accuracy on 150 held-out phrases, 10-goal shortlist, random option order, mean ± SD
+over 3 seeds. Latency is the p95 of one decider request on an RTX 5080.
+
+| Embeddings | Embeddings alone | Laya alone | Strands Decider alone | Decider + embeddings (CV-fitted) | p95 Laya / Decider |
+|---|---|---|---|---|---|
+| Qwen3-Embedding-0.6B | 81.3% | 51.8 ± 2.5% | 84.9 ± 1.4% | 85.8 ± 0.4% | 34 / 135 ms |
+| Qwen3-Embedding-4B | **94.7%** | 50.9 ± 1.5% | 85.8 ± 1.4% | 89.6 ± 0.8% | 41 / 173 ms |
+
+- **Decider vs Laya:** the Strands Decider beats Laya by 33–35 points (exact McNemar
+  p < 10⁻¹⁰), and its accuracy does not depend on option order. Laya prefers the first
+  option.
+- **4B embeddings:** similarity to 10 examples per goal is the best single signal, and no
+  decider improves on it.
+- **0.6B embeddings:** the Decider adds about 4.5 points, which is not significant at
+  n = 150.
 
 ## What is measured
 

@@ -149,28 +149,89 @@ def summary(run: Run) -> dict[str, Any]:
     }
 
 
+def _setting(run: Run) -> tuple[str, str, int]:
+    protocol = run.meta["protocol"]
+    return (run.meta["embedding"]["model"], protocol["option_order"], protocol["seed"])
+
+
+def _mcnemar(a: list[bool], b: list[bool]) -> dict[str, Any]:
+    only_a = sum(x and not y for x, y in zip(a, b, strict=True))
+    only_b = sum(y and not x for x, y in zip(a, b, strict=True))
+    return {
+        "only_first_correct": only_a,
+        "only_second_correct": only_b,
+        "p_value": mcnemar_exact(only_a, only_b),
+    }
+
+
 def paired(runs: list[Run], condition: str) -> list[dict[str, Any]]:
-    """Exact McNemar test between every pair of runs on the same test phrases."""
+    """Exact McNemar test between runs of different deciders under the same setting.
+
+    Two runs are compared only when they share the embedding model, the option order and the
+    seed, so that they saw the same shortlists, folds and option permutations.
+    """
     analyses = {run.name: analyze(run) for run in runs}
-    keys = {run.name: [(r["goal"], r["text"]) for r in run.test] for run in runs}
     out = []
     for first, second in combinations(runs, 2):
-        if keys[first.name] != keys[second.name]:
+        if _setting(first) != _setting(second):
+            continue
+        if [(r["goal"], r["text"]) for r in first.test] != [
+            (r["goal"], r["text"]) for r in second.test
+        ]:
             raise ValueError(f"{first.name} and {second.name} have different test phrases")
         a = analyses[first.name][condition].correct
         b = analyses[second.name][condition].correct
-        only_a = sum(x and not y for x, y in zip(a, b, strict=True))
-        only_b = sum(y and not x for x, y in zip(a, b, strict=True))
+        out.append(
+            {"condition": condition, "first": first.name, "second": second.name, **_mcnemar(a, b)}
+        )
+    return out
+
+
+def within(runs: list[Run], first: str, second: str) -> list[dict[str, Any]]:
+    """Exact McNemar test between two conditions of the same run (same phrases)."""
+    out = []
+    for run in runs:
+        results = analyze(run)
         out.append(
             {
-                "condition": condition,
-                "first": first.name,
-                "second": second.name,
-                "only_first_correct": only_a,
-                "only_second_correct": only_b,
-                "p_value": mcnemar_exact(only_a, only_b),
+                "run": run.name,
+                "first": first,
+                "second": second,
+                **_mcnemar(results[first].correct, results[second].correct),
             }
         )
+    return out
+
+
+def aggregate(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Mean, sample standard deviation, min and max of each condition across seeds."""
+    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for s in summaries:
+        groups.setdefault((s["label"], s["embedding_model"], s["option_order"]), []).append(s)
+    out = []
+    for (label, model, order), members in groups.items():
+        row: dict[str, Any] = {
+            "label": label,
+            "embedding_model": model,
+            "option_order": order,
+            "seeds": sorted(m["seed"] for m in members),
+            "conditions": {},
+        }
+        for condition in CONDITIONS:
+            values = [m["conditions"][condition]["accuracy"] for m in members]
+            row["conditions"][condition] = {
+                "mean": statistics.fmean(values),
+                "sd": statistics.stdev(values) if len(values) > 1 else 0.0,
+                "min": min(values),
+                "max": max(values),
+            }
+        row["picks_first_mean"] = statistics.fmean(
+            m["position_bias"]["picks_first"] for m in members
+        )
+        row["latency_p95_ms_mean"] = statistics.fmean(
+            m["classifier_latency"]["p95_ms"] for m in members
+        )
+        out.append(row)
     return out
 
 
@@ -178,8 +239,31 @@ def _pct(value: float) -> str:
     return f"{100 * value:.1f}%"
 
 
-def markdown(summaries: list[dict[str, Any]], tests: list[dict[str, Any]]) -> str:
-    lines = [
+def markdown(
+    summaries: list[dict[str, Any]],
+    tests: list[dict[str, Any]],
+    within_tests: list[dict[str, Any]] | None = None,
+    aggregates: list[dict[str, Any]] | None = None,
+) -> str:
+    lines: list[str] = []
+    if aggregates:
+        lines += [
+            "| Decider | Embeddings | Order | Seeds | " + " | ".join(CONDITIONS) + " |",
+            "|---" * (len(CONDITIONS) + 4) + "|",
+        ]
+        for g in aggregates:
+            cells = [
+                f"{_pct(c['mean'])} ± {100 * c['sd']:.1f}"
+                for c in (g["conditions"][k] for k in CONDITIONS)
+            ]
+            seeds = ",".join(str(s) for s in g["seeds"])
+            lines.append(
+                f"| {g['label']} | {g['embedding_model']} | {g['option_order']} | {seeds} | "
+                + " | ".join(cells)
+                + " |"
+            )
+        lines.append("")
+    lines += [
         "| Run | " + " | ".join(CONDITIONS) + " | picks first | p50 / p95 ms |",
         "|---" * (len(CONDITIONS) + 3) + "|",
     ]
@@ -209,6 +293,17 @@ def markdown(summaries: list[dict[str, Any]], tests: list[dict[str, Any]]) -> st
         for t in tests:
             lines.append(
                 f"| {t['condition']} | {t['first']} | {t['second']} | {t['only_first_correct']}"
+                f" | {t['only_second_correct']} | {t['p_value']:.4f} |"
+            )
+    if within_tests:
+        lines += [
+            "",
+            "| Run | First | Second | Only first | Only second | McNemar p |",
+            "|---|---|---|---|---|---|",
+        ]
+        for t in within_tests:
+            lines.append(
+                f"| {t['run']} | {t['first']} | {t['second']} | {t['only_first_correct']}"
                 f" | {t['only_second_correct']} | {t['p_value']:.4f} |"
             )
     lines += ["", "Conditions:"] + [f"- `{k}`: {v}" for k, v in DESCRIPTIONS.items()]

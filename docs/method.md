@@ -101,10 +101,15 @@ All conditions are evaluated on the 150 test phrases, over the same shortlist:
 
 - **Accuracy (top-1):** reported with 95% Wilson score intervals. With n = 150, the
   half-width is between 3 and 8 percentage points.
-- **Paired comparisons:** between runs on the same phrases (for example two deciders with
-  the same seed and order), using the exact two-sided McNemar test on the discordant pairs.
+- **Paired comparisons:** exact two-sided McNemar test on the discordant pairs.
+  - **Between deciders:** runs are paired only when they share the embedding model, the
+    option order and the seed, so both saw the same shortlists, folds and permutations.
+  - **Within a run:** two conditions on the same phrases, for example the fitted
+    combination against the embeddings alone.
+  - **Correction:** none for multiple comparisons; p-values are reported per seed.
 - **Seeds:** at least three. A seed changes both the fold assignment and, under `random`, the
-  option permutation. Report mean and spread across seeds.
+  option permutation. Report the mean and the sample standard deviation across seeds
+  (`aggregates` in the JSON report).
 - **Latency of the decider:**
   - client-side wall-clock time of one HTTP request with one phrase, covering
     serialisation, transport and inference, but not embedding;

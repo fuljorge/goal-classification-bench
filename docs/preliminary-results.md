@@ -1,9 +1,14 @@
 # Preliminary results (2026-10-08)
 
-> **Not final.** These numbers come from a single pass per configuration, made before this
-> repository existed, with options presented in **similarity order** (no position control)
-> and without per-phrase predictions (no paired tests). They motivated the protocol in
-> [`method.md`](method.md) and must be re-measured with `goalbench` before citation.
+> **Superseded by [`results.md`](results.md).**
+>
+> - **How these were measured:** a single pass per configuration, made before this
+>   repository existed, with options presented in **similarity order** (no position
+>   control) and without per-phrase predictions (no paired tests).
+> - **Status:** they motivated the protocol in [`method.md`](method.md) and are kept only
+>   as history.
+> - **What the final results changed:** the position-bias concern raised here is resolved
+>   there. The Strands Decider's accuracy does not depend on option order.
 
 ## Setup
 

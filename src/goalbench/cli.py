@@ -16,7 +16,7 @@ from .classifier import ChoiceClient
 from .data import load_goals
 from .embeddings import EmbeddingClient
 from .pipeline import ORDERS, SHORTLIST
-from .report import CONDITIONS, load_run, markdown, paired, summary
+from .report import CONDITIONS, aggregate, load_run, markdown, paired, summary, within
 from .run import collect
 
 DEFAULT_DATA = Path("data/goals_ptbr.jsonl")
@@ -58,11 +58,26 @@ def _report(args: argparse.Namespace) -> int:
     runs = [load_run(p) for p in args.runs]
     summaries = [summary(r) for r in runs]
     tests = [t for c in args.compare for t in paired(runs, c)] if len(runs) > 1 else []
+    within_tests = [t for pair in args.within for t in within(runs, *pair.split(":", 1))]
+    aggregates = aggregate(summaries)
     if args.json:
-        print(json.dumps({"runs": summaries, "paired_tests": tests}, ensure_ascii=False, indent=2))
+        payload = {
+            "runs": summaries,
+            "aggregates": aggregates,
+            "paired_tests": tests,
+            "within_tests": within_tests,
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
-        print(markdown(summaries, tests))
+        print(markdown(summaries, tests, within_tests, aggregates))
     return 0
+
+
+def _condition_pair(value: str) -> str:
+    first, sep, second = value.partition(":")
+    if not sep or first not in CONDITIONS or second not in CONDITIONS:
+        raise argparse.ArgumentTypeError(f"expected CONDITION:CONDITION, got {value!r}")
+    return value
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -97,6 +112,13 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="+",
         choices=CONDITIONS,
         default=["classifier_alone", "fitted_grid_with_zero"],
+    )
+    report.add_argument(
+        "--within",
+        nargs="+",
+        type=_condition_pair,
+        default=["fitted_grid_with_zero:embeddings_alone", "classifier_alone:embeddings_alone"],
+        help="pairs of conditions compared inside each run (CONDITION:CONDITION)",
     )
     report.add_argument("--json", action="store_true")
     report.set_defaults(func=_report)

@@ -15,7 +15,7 @@ from goalbench.pipeline import OptionOrder
 from goalbench.report import load_run, markdown, paired, summary
 from goalbench.run import collect
 
-from .fakes import classifier_transport, embeddings_transport, first_option
+from .fakes import Policy, classifier_transport, embeddings_transport, first_option
 
 TOKEN = "secret-token-value"
 TOPICS = {
@@ -46,7 +46,14 @@ def _dataset(tmp_path: Path) -> Path:
     return path
 
 
-def _collect(tmp_path: Path, order: OptionOrder, seed: int, calls: list[int] | None = None) -> Path:
+def _collect(
+    tmp_path: Path,
+    order: OptionOrder,
+    seed: int,
+    calls: list[int] | None = None,
+    policy: Policy = first_option,
+    label: str = "first",
+) -> Path:
     data = _dataset(tmp_path)
     embedder = EmbeddingClient(
         "http://emb/v1/embeddings",
@@ -58,14 +65,14 @@ def _collect(tmp_path: Path, order: OptionOrder, seed: int, calls: list[int] | N
         "http://clf",
         token=TOKEN,
         lang="pt",
-        client=httpx.Client(transport=classifier_transport(first_option, TOKEN)),
+        client=httpx.Client(transport=classifier_transport(policy, TOKEN)),
     )
     return collect(
         load_goals(data),
         embedder,
         classifier,
         dataset_path=data,
-        label="first",
+        label=label,
         order=order,
         seed=seed,
         shortlist_size=3,
@@ -110,10 +117,17 @@ def test_embedding_cache_avoids_second_call(tmp_path: Path) -> None:
     assert sum(calls) == first
 
 
+def last_option(message: str, keys: list[str]) -> dict[str, float]:
+    return {k: v for k, v in zip(reversed(keys), first_option(message, keys).values(), strict=True)}
+
+
 def test_report_and_paired_test(tmp_path: Path) -> None:
-    orders: tuple[OptionOrder, ...] = ("similarity", "reversed")
-    runs = [load_run(_collect(tmp_path, o, 0)) for o in orders]
+    runs = [
+        load_run(_collect(tmp_path, "similarity", 0)),
+        load_run(_collect(tmp_path, "similarity", 0, policy=last_option, label="last")),
+    ]
     tests = paired(runs, "classifier_alone")
+    assert len(tests) == 1
     assert tests[0]["only_first_correct"] > tests[0]["only_second_correct"]
     text = markdown([summary(r) for r in runs], tests)
     assert "McNemar" in text and "first_option" in text
@@ -127,3 +141,21 @@ def test_parse_probabilities_with_legend_and_garbage() -> None:
     assert parse_probabilities(None, keys) == {"a": 0.5, "b": 0.5}
     with pytest.raises(ValueError):
         parse_probabilities({"probabilities": {"a": "x"}}, keys)
+
+
+def test_within_run_test_and_aggregate_across_seeds(tmp_path: Path) -> None:
+    from goalbench.report import aggregate, within
+
+    runs = [load_run(_collect(tmp_path, "random", seed)) for seed in (0, 1, 2)]
+    tests = within(runs, "classifier_alone", "first_option")
+    assert len(tests) == 3
+    assert all(t["only_first_correct"] == 0 and t["only_second_correct"] == 0 for t in tests)
+    groups = aggregate([summary(r) for r in runs])
+    assert len(groups) == 1 and groups[0]["seeds"] == [0, 1, 2]
+    alone = groups[0]["conditions"]["classifier_alone"]
+    assert alone["min"] <= alone["mean"] <= alone["max"]
+
+
+def test_paired_compares_only_runs_with_the_same_setting(tmp_path: Path) -> None:
+    runs = [load_run(_collect(tmp_path, "random", seed)) for seed in (0, 1)]
+    assert paired(runs, "classifier_alone") == []
