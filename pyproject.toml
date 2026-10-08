@@ -40,6 +40,10 @@ extend-exclude = ["servers"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# Slide text: long literal lines and the typographic minus sign are intentional.
+"posts/*.py" = ["E501", "RUF001"]
+
 [tool.mypy]
 strict = true
 files = ["src", "tests"]
