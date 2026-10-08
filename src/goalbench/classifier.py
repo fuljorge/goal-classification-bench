@@ -14,7 +14,9 @@ from typing import Any
 import httpx
 
 QUESTION_ID = "goal"
+# Default question (Brazilian Portuguese); the English dataset uses INSTRUCTIONS_EN.
 INSTRUCTIONS = "Qual é o objetivo do cliente nesta mensagem?"
+INSTRUCTIONS_EN = "What is the customer's goal in this message?"
 
 
 @dataclass(frozen=True)
@@ -52,12 +54,14 @@ class ChoiceClient:
         token: str | None = None,
         model: str | None = None,
         lang: str | None = None,
+        instructions: str = INSTRUCTIONS,
         client: httpx.Client | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}
         self.model = model
         self.lang = lang
+        self.instructions = instructions
         self.client = client or httpx.Client(timeout=120)
 
     def health(self) -> dict[str, Any]:
@@ -70,7 +74,11 @@ class ChoiceClient:
         body: dict[str, Any] = {
             "state": {"body": message},
             "questions": {
-                QUESTION_ID: {"type": "choice", "instructions": INSTRUCTIONS, "criteria": criteria}
+                QUESTION_ID: {
+                    "type": "choice",
+                    "instructions": self.instructions,
+                    "criteria": criteria,
+                }
             },
         }
         if self.model:

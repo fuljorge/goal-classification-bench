@@ -1,0 +1,47 @@
+{
+  "goalbench_version": "0.1.0",
+  "created_at": "2026-10-08T07:23:11+00:00",
+  "label": "strands-decider-2B-hobson-v21",
+  "dataset": {
+    "file": "goals_en.jsonl",
+    "sha256": "79be2fce762cf9a974da69ecef34d43151433dde1cdcd593dea6e65cf8a8648f",
+    "goals": 30,
+    "examples": 300,
+    "tests": 150
+  },
+  "embedding": {
+    "model": "text-embedding-qwen3-embedding-0.6b",
+    "instruction": "Instruct: Identify the customer's goal in this message\nQuery: "
+  },
+  "classifier": {
+    "model_field": null,
+    "lang": null,
+    "instructions": "What is the customer's goal in this message?",
+    "health": {
+      "status": "ok",
+      "loaded": [
+        "strands-decider"
+      ],
+      "engine": "strands-decider",
+      "model": "strands-decider-2B-hobson-v21",
+      "checkpoint": "StrandsAgents/strands-decider-2B-hobson-v21",
+      "revisions": {
+        "strands-decider": "2b52a6235c1b8306bbfa30b00b9d4b74b63a39f5"
+      },
+      "base_model": "Qwen/Qwen3.5-2B-Base",
+      "num_slots": 24,
+      "max_length": 4096,
+      "device": "cuda"
+    }
+  },
+  "protocol": {
+    "shortlist": 10,
+    "option_order": "random",
+    "seed": 2,
+    "folds": 5
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

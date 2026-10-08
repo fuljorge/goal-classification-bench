@@ -72,6 +72,31 @@ first presented option) and how often the decider picks the first option.
 All phrases are synthetic and labelled at generation time. There is no independent human
 annotation.
 
+### Parallel English dataset (language comparison)
+
+`data/goals_en.jsonl` is a line-by-line translation of the Portuguese set:
+- **Alignment:** it keeps the same goals in the same order, and the i-th example and test
+  phrase of each goal translate the i-th phrase of the Portuguese goal. Each row keeps the
+  original key in `ptbr_key`.
+- **Goal keys:** they are translated too (for example `pix_problema` →
+  `instant_transfer_issue`), because deciders see them as option labels.
+- **Brazil-specific terms:** they are translated by meaning, not kept as names:
+
+  | Portuguese | English |
+  |---|---|
+  | Pix | instant transfer |
+  | boleto | payment slip |
+  | Procon | consumer protection agency |
+  | CNPJ | company tax ID |
+  | DANFE | electronic invoice document |
+  | consignado | payroll-deducted loan |
+
+- **Length:** English test phrases have a median of 8 words, against 6 in Portuguese.
+- **Question and Laya settings:** the question is sent in English ("What is the customer's
+  goal in this message?"), and Laya receives `lang = en`.
+- **Laya checkpoints:** both `multilingual` (same model in both languages) and `english`
+  (the language-specific checkpoint of the same release) are measured.
+
 ## Conditions
 
 All conditions are evaluated on the 150 test phrases, over the same shortlist:
@@ -106,6 +131,8 @@ All conditions are evaluated on the 150 test phrases, over the same shortlist:
     option order and the seed, so both saw the same shortlists, folds and permutations.
   - **Within a run:** two conditions on the same phrases, for example the fitted
     combination against the embeddings alone.
+  - **Across languages:** the same decider, embedding model, order and seed on the two
+    parallel datasets, with phrases aligned by position (`--cross-dataset`).
   - **Correction:** none for multiple comparisons; p-values are reported per seed.
 - **Seeds:** at least three. A seed changes both the fold assignment and, under `random`, the
   option permutation. Report the mean and the sample standard deviation across seeds

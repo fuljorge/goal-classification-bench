@@ -17,8 +17,12 @@ Every call is logged per phrase, so all conditions and statistics are recomputed
 
 - **Method:** [`docs/method.md`](docs/method.md).
 - **Dataset card:** [`data/README.md`](data/README.md).
-- **Results:** [`docs/results.md`](docs/results.md), with raw logs in
-  [`results/v0.1.0/`](results/v0.1.0/).
+- **Results:**
+  - Brazilian Portuguese: [`docs/results.md`](docs/results.md), with raw logs in
+    [`results/v0.1.0/`](results/v0.1.0/);
+  - language effect, PT-BR vs a parallel English translation:
+    [`docs/results-language.md`](docs/results-language.md), with raw logs in
+    [`results/v0.2.0/`](results/v0.2.0/).
 
 ## Results at a glance (v0.1.0)
 
@@ -37,6 +41,22 @@ over 3 seeds. Latency is the p95 of one decider request on an RTX 5080.
   decider improves on it.
 - **0.6B embeddings:** the Decider adds about 4.5 points, which is not significant at
   n = 150.
+
+## Language effect at a glance (v0.2.0)
+
+The same phrases in a line-by-line English translation:
+
+| Component (random order, 3 seeds) | PT-BR | EN | Δ |
+|---|---|---|---|
+| Embeddings alone, 0.6B | 81.3% | 93.3% | +12.0 (p = 0.0014) |
+| Embeddings alone, 4B | 94.7% | 98.0% | +3.3 (n.s.) |
+| Strands Decider + 0.6B embeddings | 85.8% | 94.2% | +8.4 (p ≤ 0.004) |
+| Laya multilingual alone | 51.8% | 57.6% | +5.8 |
+| **Laya English checkpoint alone** | — | **81.6%** | **+24 over multilingual** (p < 10⁻⁵) |
+
+- **Portuguese penalty:** every component loses accuracy in PT-BR.
+- **Largest effect:** a checkpoint built for the language, which is the case for
+  fine-tuning in Brazilian Portuguese.
 
 ## What is measured
 

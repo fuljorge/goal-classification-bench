@@ -27,7 +27,7 @@ from typing import Any
 import numpy as np
 
 from . import __version__
-from .classifier import INSTRUCTIONS, ChoiceClient
+from .classifier import ChoiceClient
 from .data import Goal
 from .embeddings import EmbeddingClient, Vectors
 from .pipeline import OptionOrder, order_options, shortlist, similarity
@@ -122,7 +122,7 @@ def collect(
         "classifier": {
             "model_field": classifier.model,
             "lang": classifier.lang,
-            "instructions": INSTRUCTIONS,
+            "instructions": classifier.instructions,
             "health": health,
         },
         "protocol": {

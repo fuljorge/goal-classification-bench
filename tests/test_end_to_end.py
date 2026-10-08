@@ -18,6 +18,12 @@ from goalbench.run import collect
 from .fakes import Policy, classifier_transport, embeddings_transport, first_option
 
 TOKEN = "secret-token-value"
+TOPICS_EN = {
+    "bill": "bill invoice account pay",
+    "card": "card block lost stolen",
+    "transfer": "transfer instant key send",
+    "password": "password access login forgot",
+}
 TOPICS = {
     "boleto": "boleto fatura conta pagar",
     "cartao": "cartao bloquear perdi roubado",
@@ -26,9 +32,9 @@ TOPICS = {
 }
 
 
-def _dataset(tmp_path: Path) -> Path:
+def _dataset(tmp_path: Path, topics: dict[str, str] | None = None, name: str = "goals") -> Path:
     lines = []
-    for key, words in TOPICS.items():
+    for key, words in (topics or TOPICS).items():
         w = words.split()
         lines.append(
             json.dumps(
@@ -41,7 +47,7 @@ def _dataset(tmp_path: Path) -> Path:
                 }
             )
         )
-    path = tmp_path / "goals.jsonl"
+    path = tmp_path / f"{name}.jsonl"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
@@ -53,8 +59,9 @@ def _collect(
     calls: list[int] | None = None,
     policy: Policy = first_option,
     label: str = "first",
+    english: bool = False,
 ) -> Path:
-    data = _dataset(tmp_path)
+    data = _dataset(tmp_path, TOPICS_EN, "goals_en") if english else _dataset(tmp_path)
     embedder = EmbeddingClient(
         "http://emb/v1/embeddings",
         "qwen3-embedding-test",
@@ -76,7 +83,7 @@ def _collect(
         order=order,
         seed=seed,
         shortlist_size=3,
-        out_dir=tmp_path / "results",
+        out_dir=tmp_path / ("results_en" if english else "results"),
     )
 
 
@@ -159,3 +166,34 @@ def test_within_run_test_and_aggregate_across_seeds(tmp_path: Path) -> None:
 def test_paired_compares_only_runs_with_the_same_setting(tmp_path: Path) -> None:
     runs = [load_run(_collect(tmp_path, "random", seed)) for seed in (0, 1)]
     assert paired(runs, "classifier_alone") == []
+
+
+def test_crosslingual_pairs_parallel_datasets_only(tmp_path: Path) -> None:
+    from goalbench.report import crosslingual
+
+    pt = load_run(_collect(tmp_path, "random", 0))
+    en = load_run(_collect(tmp_path, "random", 0, english=True))
+    assert paired([pt, en], "classifier_alone") == []
+    assert pt.name == en.name  # same folder name in different output directories
+    tests = crosslingual([pt, en], "classifier_alone")
+    assert len(tests) == 1
+    # Regression: analyses were keyed by folder name, so both sides were the same run.
+    expected_pt = [r["presented"][0] == r["goal"] for r in pt.test]
+    expected_en = [r["presented"][0] == r["goal"] for r in en.test]
+    assert tests[0]["only_first_correct"] == sum(
+        a and not b for a, b in zip(expected_pt, expected_en, strict=True)
+    )
+    assert tests[0]["only_second_correct"] == sum(
+        b and not a for a, b in zip(expected_pt, expected_en, strict=True)
+    )
+    assert expected_pt != expected_en
+    assert tests[0]["first"].startswith("goals.jsonl/")
+    assert tests[0]["second"].startswith("goals_en.jsonl/")
+    groups = aggregate_datasets([summary(pt), summary(en)])
+    assert groups == {"goals.jsonl", "goals_en.jsonl"}
+
+
+def aggregate_datasets(summaries: list[dict[str, object]]) -> set[object]:
+    from goalbench.report import aggregate
+
+    return {g["dataset"] for g in aggregate(summaries)}

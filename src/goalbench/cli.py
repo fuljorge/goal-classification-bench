@@ -12,11 +12,20 @@ import os
 import sys
 from pathlib import Path
 
-from .classifier import ChoiceClient
+from .classifier import INSTRUCTIONS, INSTRUCTIONS_EN, ChoiceClient
 from .data import load_goals
 from .embeddings import EmbeddingClient
 from .pipeline import ORDERS, SHORTLIST
-from .report import CONDITIONS, aggregate, load_run, markdown, paired, summary, within
+from .report import (
+    CONDITIONS,
+    aggregate,
+    crosslingual,
+    load_run,
+    markdown,
+    paired,
+    summary,
+    within,
+)
 from .run import collect
 
 DEFAULT_DATA = Path("data/goals_ptbr.jsonl")
@@ -36,6 +45,7 @@ def _run(args: argparse.Namespace) -> int:
         token=os.environ.get(args.classifier_token_env) or None,
         model=args.classifier_model,
         lang=args.lang,
+        instructions=args.instructions,
     )
     for seed in args.seed:
         target = collect(
@@ -58,6 +68,8 @@ def _report(args: argparse.Namespace) -> int:
     runs = [load_run(p) for p in args.runs]
     summaries = [summary(r) for r in runs]
     tests = [t for c in args.compare for t in paired(runs, c)] if len(runs) > 1 else []
+    if args.cross_dataset:
+        tests += [t for c in args.compare for t in crosslingual(runs, c)]
     within_tests = [t for pair in args.within for t in within(runs, *pair.split(":", 1))]
     aggregates = aggregate(summaries)
     if args.json:
@@ -98,6 +110,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--classifier-token-env", default="GOALBENCH_CLASSIFIER_TOKEN")
     run.add_argument("--classifier-model", help='value of the "model" field (Laya: multilingual)')
     run.add_argument("--lang", help='value of the "lang" field (Laya: pt)')
+    run.add_argument(
+        "--instructions",
+        default=INSTRUCTIONS,
+        help=f"question sent with every choice (default: Portuguese; for the English dataset: "
+        f"{INSTRUCTIONS_EN!r})",
+    )
     run.add_argument("--label", required=True, help="name of the classifier in the results")
     run.add_argument("--order", choices=ORDERS, default="random")
     run.add_argument("--seed", type=int, nargs="+", default=[0])
@@ -119,6 +137,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=_condition_pair,
         default=["fitted_grid_with_zero:embeddings_alone", "classifier_alone:embeddings_alone"],
         help="pairs of conditions compared inside each run (CONDITION:CONDITION)",
+    )
+    report.add_argument(
+        "--cross-dataset",
+        action="store_true",
+        help="also compare each decider across parallel datasets (phrases aligned by position)",
     )
     report.add_argument("--json", action="store_true")
     report.set_defaults(func=_report)

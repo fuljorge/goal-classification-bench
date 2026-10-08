@@ -1,4 +1,4 @@
-# Dataset card: `goals_ptbr.jsonl`
+# Dataset card: `goals_ptbr.jsonl` and `goals_en.jsonl`
 
 ## Summary
 
@@ -45,3 +45,20 @@ One JSON object per line:
 - **Small:** 150 test phrases give 95% intervals of ±3 to ±8 percentage points.
 - **Single generator:** a model trained on similar data may find it easier than real
   messages.
+
+## `goals_en.jsonl`: parallel English translation
+
+`goals_en.jsonl` is a line-by-line English translation of `goals_ptbr.jsonl`, made on
+2026-10-08 by the same kind of AI agent for the language comparison in
+[`docs/results-language.md`](../docs/results-language.md).
+
+- **Structure:** same goals, same order, same number of phrases. Phrase i of goal g
+  translates phrase i of goal g, and `ptbr_key` keeps the Portuguese key.
+- **Localisation:** Brazil-specific terms are translated by meaning (Pix → instant transfer,
+  boleto → payment slip, Procon → consumer protection agency, CNPJ → company tax ID, DANFE →
+  electronic invoice document, consignado → payroll-deducted loan), keeping the
+  informal, lower-case style.
+- **Limitations:** it is translated text, not native customer English. It may be more
+  explicit and regular than real messages ("translationese"), and its test phrases are
+  longer (median 8 words, against 6).
+- **License:** CC BY 4.0.

@@ -39,6 +39,8 @@ class Run:
     meta: dict[str, Any]
     cv: list[dict[str, Any]]
     test: list[dict[str, Any]]
+    # analyze() is deterministic; its result is kept so every test reuses one fit per run.
+    analysis: dict[str, Result] | None = field(default=None, repr=False, compare=False)
 
     @property
     def name(self) -> str:
@@ -97,6 +99,12 @@ def _with_params(rows: list[dict[str, Any]], params: Params) -> list[bool]:
 
 
 def analyze(run: Run) -> dict[str, Result]:
+    if run.analysis is None:
+        run.analysis = _analyze(run)
+    return run.analysis
+
+
+def _analyze(run: Run) -> dict[str, Result]:
     test = run.test
     cv = _scored(run.cv)
     platform = fit_params(cv, GRID_A_PLATFORM)
@@ -140,6 +148,7 @@ def summary(run: Run) -> dict[str, Any]:
     return {
         "run": run.name,
         "label": run.meta["label"],
+        "dataset": run.meta["dataset"]["file"],
         "embedding_model": run.meta["embedding"]["model"],
         "option_order": run.meta["protocol"]["option_order"],
         "seed": run.meta["protocol"]["seed"],
@@ -149,9 +158,14 @@ def summary(run: Run) -> dict[str, Any]:
     }
 
 
-def _setting(run: Run) -> tuple[str, str, int]:
+def _setting(run: Run) -> tuple[str, str, str, int]:
     protocol = run.meta["protocol"]
-    return (run.meta["embedding"]["model"], protocol["option_order"], protocol["seed"])
+    return (
+        run.meta["dataset"]["sha256"],
+        run.meta["embedding"]["model"],
+        protocol["option_order"],
+        protocol["seed"],
+    )
 
 
 def _mcnemar(a: list[bool], b: list[bool]) -> dict[str, Any]:
@@ -167,10 +181,9 @@ def _mcnemar(a: list[bool], b: list[bool]) -> dict[str, Any]:
 def paired(runs: list[Run], condition: str) -> list[dict[str, Any]]:
     """Exact McNemar test between runs of different deciders under the same setting.
 
-    Two runs are compared only when they share the embedding model, the option order and the
-    seed, so that they saw the same shortlists, folds and option permutations.
+    Two runs are compared only when they share the dataset, the embedding model, the option
+    order and the seed, so that they saw the same shortlists, folds and option permutations.
     """
-    analyses = {run.name: analyze(run) for run in runs}
     out = []
     for first, second in combinations(runs, 2):
         if _setting(first) != _setting(second):
@@ -179,10 +192,46 @@ def paired(runs: list[Run], condition: str) -> list[dict[str, Any]]:
             (r["goal"], r["text"]) for r in second.test
         ]:
             raise ValueError(f"{first.name} and {second.name} have different test phrases")
-        a = analyses[first.name][condition].correct
-        b = analyses[second.name][condition].correct
+        a = analyze(first)[condition].correct
+        b = analyze(second)[condition].correct
         out.append(
             {"condition": condition, "first": first.name, "second": second.name, **_mcnemar(a, b)}
+        )
+    return out
+
+
+def crosslingual(runs: list[Run], condition: str) -> list[dict[str, Any]]:
+    """Exact McNemar test between the same decider on two parallel datasets.
+
+    Runs are paired when they share the decider label, the embedding model, the option order
+    and the seed but use different datasets. Phrases are aligned by position: parallel
+    datasets list the same goals in the same order, with the i-th phrase of each goal being
+    a translation of the other's.
+    """
+    out = []
+    for first, second in combinations(runs, 2):
+        a_set, b_set = _setting(first), _setting(second)
+        if a_set[0] == b_set[0] or a_set[1:] != b_set[1:]:
+            continue
+        if first.meta["label"] != second.meta["label"]:
+            continue
+        a_goals = [r["goal"] for r in first.test]
+        b_goals = [r["goal"] for r in second.test]
+        boundaries = (
+            [i for i in range(1, len(a_goals)) if a_goals[i] != a_goals[i - 1]],
+            [i for i in range(1, len(b_goals)) if b_goals[i] != b_goals[i - 1]],
+        )
+        if len(a_goals) != len(b_goals) or boundaries[0] != boundaries[1]:
+            raise ValueError(f"{first.name} and {second.name} are not parallel datasets")
+        a = analyze(first)[condition].correct
+        b = analyze(second)[condition].correct
+        out.append(
+            {
+                "condition": condition,
+                "first": f"{first.meta['dataset']['file']}/{first.name}",
+                "second": f"{second.meta['dataset']['file']}/{second.name}",
+                **_mcnemar(a, b),
+            }
         )
     return out
 
@@ -205,12 +254,14 @@ def within(runs: list[Run], first: str, second: str) -> list[dict[str, Any]]:
 
 def aggregate(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Mean, sample standard deviation, min and max of each condition across seeds."""
-    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
     for s in summaries:
-        groups.setdefault((s["label"], s["embedding_model"], s["option_order"]), []).append(s)
+        key = (s["dataset"], s["label"], s["embedding_model"], s["option_order"])
+        groups.setdefault(key, []).append(s)
     out = []
-    for (label, model, order), members in groups.items():
+    for (dataset, label, model, order), members in groups.items():
         row: dict[str, Any] = {
+            "dataset": dataset,
             "label": label,
             "embedding_model": model,
             "option_order": order,
@@ -248,8 +299,8 @@ def markdown(
     lines: list[str] = []
     if aggregates:
         lines += [
-            "| Decider | Embeddings | Order | Seeds | " + " | ".join(CONDITIONS) + " |",
-            "|---" * (len(CONDITIONS) + 4) + "|",
+            "| Dataset | Decider | Embeddings | Order | Seeds | " + " | ".join(CONDITIONS) + " |",
+            "|---" * (len(CONDITIONS) + 5) + "|",
         ]
         for g in aggregates:
             cells = [
@@ -258,9 +309,8 @@ def markdown(
             ]
             seeds = ",".join(str(s) for s in g["seeds"])
             lines.append(
-                f"| {g['label']} | {g['embedding_model']} | {g['option_order']} | {seeds} | "
-                + " | ".join(cells)
-                + " |"
+                f"| {g['dataset']} | {g['label']} | {g['embedding_model']} | {g['option_order']}"
+                f" | {seeds} | " + " | ".join(cells) + " |"
             )
         lines.append("")
     lines += [
