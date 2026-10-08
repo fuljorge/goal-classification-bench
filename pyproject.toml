@@ -1,6 +1,6 @@
 [project]
 name = "goalbench"
-version = "0.2.0"
+version = "0.2.1"
 description = "Reproducible benchmark of choice-style classifiers (Laya, Strands Decider) for customer-goal classification in Brazilian Portuguese, with an embedding shortlist and a calibrated combination."
 readme = "README.md"
 license = "Apache-2.0"

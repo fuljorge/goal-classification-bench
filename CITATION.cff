@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this benchmark, please cite it as below."
 title: "goalbench: a reproducible benchmark of choice-style deciders for customer-goal classification in Brazilian Portuguese"
 type: software
-version: 0.2.0
+version: 0.2.1
 date-released: 2026-10-08
 license: Apache-2.0
 repository-code: "https://github.com/fuljorge/goal-classification-bench"
